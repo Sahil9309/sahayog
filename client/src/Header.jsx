@@ -2,6 +2,7 @@ import React, { useState, useContext } from 'react';
 import { Link } from 'react-router-dom'; // Import Link from react-router-dom
 import axios from 'axios';
 import { UserContext } from './context/UserContext.js';
+import { Heart, FolderOpen, LogOut, Settings, User } from 'lucide-react';
 
 const Header = () => {
   const { user, setUser } = useContext(UserContext);
@@ -88,25 +89,75 @@ const Header = () => {
                   </svg>
                 </button>
 
-                {/* User Dropdown Menu */}
+                {/* Enhanced User Dropdown Menu */}
                 {isUserMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
-                    <Link
-                      to="/settings"
-                      onClick={() => setIsUserMenuOpen(false)}
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                    Add Event
-                    </Link>
-                    <button
-                      onClick={() => {
-                        setIsUserMenuOpen(false);
-                        handleLogout();
-                      }}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      Sign Out
-                    </button>
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl py-2 z-50 border border-gray-100">
+                    {/* User Info Section */}
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <div className="flex items-center space-x-3">
+                        {user.avatar ? (
+                          <img 
+                            src={user.avatar} 
+                            alt={user.name || user.firstName || user.username || 'User'}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 bg-teal-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                            {getUserInitials(user.name || user.firstName || user.username || 'User')}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : (user.name || user.firstName || user.username || 'User')}
+                          </p>
+                          <p className="text-sm text-gray-500 truncate">{user.email || 'No email'}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Menu Items */}
+                    <div className="py-1">
+                      <Link
+                        to="/my-campaigns"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-teal-600 transition-colors"
+                      >
+                        <FolderOpen className="h-4 w-4 mr-3" />
+                        My Campaigns
+                      </Link>
+                      
+                      <Link
+                        to="/my-contributions"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-teal-600 transition-colors"
+                      >
+                        <Heart className="h-4 w-4 mr-3" />
+                        My Contributions
+                      </Link>
+                      
+                      <Link
+                        to="/settings"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-teal-600 transition-colors"
+                      >
+                        <Settings className="h-4 w-4 mr-3" />
+                        Settings
+                      </Link>
+                    </div>
+
+                    {/* Logout Section - Separated at bottom */}
+                    <div className="border-t border-gray-100 py-1">
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          handleLogout();
+                        }}
+                        className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
+                      >
+                        <LogOut className="h-4 w-4 mr-3" />
+                        Sign Out
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -147,7 +198,7 @@ const Header = () => {
           </div>
         </div>
 
-        {/* Mobile menu - Conditionally displayed based on state */}
+        {/* Mobile menu - Enhanced for better user experience */}
         <div className={`${isMenuOpen ? 'block' : 'hidden'} md:hidden`} id="mobile-menu">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             <Link to="/" onClick={() => setIsMenuOpen(false)} className="text-gray-700 hover:text-teal-600 block px-3 py-2 rounded-md text-base font-medium w-full text-left">
@@ -160,7 +211,7 @@ const Header = () => {
             {/* Mobile Auth Section */}
             <div className="pt-4 pb-3 border-t border-gray-200">
               {user ? (
-                // User is logged in - show user info and options
+                // User is logged in - Enhanced mobile menu
                 <div className="space-y-3">
                   <div className="flex items-center px-3 space-x-3">
                     {user.avatar ? (
@@ -175,27 +226,49 @@ const Header = () => {
                       </div>
                     )}
                     <div>
-                      <div className="text-base font-medium text-gray-800">{user.name || user.firstName || user.username || 'User'}</div>
+                      <div className="text-base font-medium text-gray-800">
+                        {user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : (user.name || user.firstName || user.username || 'User')}
+                      </div>
                       <div className="text-sm font-medium text-gray-500">{user.email || 'No email'}</div>
                     </div>
                   </div>
                   <div className="space-y-1">
                     <Link
+                      to="/my-campaigns"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-teal-600 hover:bg-gray-50"
+                    >
+                      <FolderOpen className="h-5 w-5 mr-3" />
+                      My Campaigns
+                    </Link>
+                    <Link
+                      to="/my-contributions"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-teal-600 hover:bg-gray-50"
+                    >
+                      <Heart className="h-5 w-5 mr-3" />
+                      My Contributions
+                    </Link>
+                    <Link
                       to="/settings"
                       onClick={() => setIsMenuOpen(false)}
-                      className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-teal-600"
+                      className="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-teal-600 hover:bg-gray-50"
                     >
+                      <Settings className="h-5 w-5 mr-3" />
                       Settings
                     </Link>
-                    <button
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                        handleLogout();
-                      }}
-                      className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-teal-600"
-                    >
-                      Sign Out
-                    </button>
+                    <div className="border-t border-gray-200 pt-2">
+                      <button
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          handleLogout();
+                        }}
+                        className="flex items-center w-full px-3 py-2 rounded-md text-base font-medium text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <LogOut className="h-5 w-5 mr-3" />
+                        Sign Out
+                      </button>
+                    </div>
                   </div>
                 </div>
               ) : (
