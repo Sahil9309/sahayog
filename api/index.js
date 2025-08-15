@@ -41,7 +41,6 @@ app.get('/api/test', (req, res) => {
     res.json('test ok');
 });
 
-// User Routes
 app.post('/api/register', async (req, res) => {
     const { firstName, lastName, email, password, avatar } = req.body;
     try {
@@ -77,6 +76,30 @@ app.post('/api/login', async (req, res) => {
     } else {
         res.status(404).json('User not found');
     }
+});
+
+app.get('/api/profile', (req, res) => {
+  const { token } = req.cookies;
+  if (token) {
+    jwt.verify(token, jwtSecret, {}, async (err, userData) => {
+      if (err) throw err;
+      // Correctly find the user and destructure the required fields
+      const userDoc = await User.findById(userData.id);
+      if (userDoc) {
+        res.json({
+            _id: userDoc._id,
+            firstName: userDoc.firstName,
+            lastName: userDoc.lastName,
+            email: userDoc.email,
+            avatar: userDoc.avatar,
+        });
+      } else {
+        res.json(null);
+      }
+    });
+  } else {
+    res.json(null);
+  }
 });
 
 app.post('/api/logout', (req, res) => {

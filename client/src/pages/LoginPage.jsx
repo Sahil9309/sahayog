@@ -10,8 +10,8 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
   
-  const { setUser } = useContext(UserContext); // Get the setUser function from context
-  const navigate = useNavigate(); // Hook for programmatic navigation
+  const { setUser } = useContext(UserContext);
+  const navigate = useNavigate();
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -38,13 +38,11 @@ const LoginPage = () => {
     setErrors({});
 
     try {
-      // The global axios config in App.jsx handles the 'withCredentials' part
       const response = await axios.post('/api/login', formData);
-      
-      // *** UPDATED LOGIC ***
+  
       setUser(response.data); // 1. Set the user in the global context
       alert(`Welcome back, ${response.data.firstName || response.data.username}!`);
-      navigate('/'); // 2. Navigate to the landing page (index route)
+      navigate('/');
 
     } catch (error) {
       if (error.response) {
@@ -103,7 +101,7 @@ const LoginPage = () => {
               <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">Remember me</label>
             </div>
             <div className="text-sm">
-              <a href="/forgot-password" className="font-medium text-[#008080] hover:text-[#006666] transition-colors">Forgot your password?</a>
+              <a className="font-medium text-[#008080] hover:text-[#006666] transition-colors">Forgot your password?</a>
             </div>
           </div>
           {errors.submit && (<div className="bg-[#ff6b6b]/10 border border-[#ff6b6b] text-[#ff6b6b] px-4 py-3 rounded-lg">{errors.submit}</div>)}
