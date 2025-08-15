@@ -95,15 +95,6 @@ const LoginPage = () => {
             </div>
             {errors.password && (<p className="mt-1 text-sm text-[#ff6b6b]">{errors.password}</p>)}
           </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input id="remember-me" name="remember-me" type="checkbox" className="h-4 w-4 text-[#008080] focus:ring-[#008080] border-gray-300 rounded"/>
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">Remember me</label>
-            </div>
-            <div className="text-sm">
-              <a className="font-medium text-[#008080] hover:text-[#006666] transition-colors">Forgot your password?</a>
-            </div>
-          </div>
           {errors.submit && (<div className="bg-[#ff6b6b]/10 border border-[#ff6b6b] text-[#ff6b6b] px-4 py-3 rounded-lg">{errors.submit}</div>)}
           <div>
             <button type="button" onClick={handleSubmit} disabled={isLoading} className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-[#008080] hover:bg-[#006666] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#008080] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
