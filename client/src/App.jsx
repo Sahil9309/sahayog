@@ -8,7 +8,7 @@ import LandingPage from "./pages/LandingPage.jsx"
 import AboutUs from "./pages/AboutUs.jsx";
 
 // Configure Axios defaults
-axios.defaults.baseURL = 'http://localhost:4000'; // Your backend server URL
+axios.defaults.baseURL = 'http://localhost:5000'; // Your backend server URL
 axios.defaults.withCredentials = true; // Crucial: ensures cookies are sent with every request
 
 function App() {
