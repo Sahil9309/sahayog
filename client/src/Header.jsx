@@ -1,13 +1,15 @@
 import React, { useState, useContext } from 'react';
-// Import NavLink along with Link
-import { Link, NavLink } from 'react-router-dom';
+// 1. Import useNavigate from react-router-dom
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { UserContext } from './context/UserContext.js';
 import { Heart, FolderOpen, LogOut, Settings } from 'lucide-react';
 
 const Header = () => {
   const { user, setUser } = useContext(UserContext);
-
+  // 2. Initialize the navigate function
+  const navigate = useNavigate();
+  
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
@@ -32,23 +34,22 @@ const Header = () => {
     try {
       await axios.post('/api/logout');
       setUser(null);
+      // 3. Navigate to the login page after setting user to null
+      navigate('/login');
     } catch (error) {
       console.error('Logout failed:', error);
     }
   };
 
-  // This function determines the className for our NavLinks
   const navLinkClasses = ({ isActive }) =>
     `px-3 py-2 rounded-md text-md font-medium transition-colors ${
       isActive ? 'text-teal-600' : 'text-gray-700 hover:text-teal-600'
     }`;
 
-  // This function determines the className for our mobile NavLinks
   const mobileNavLinkClasses = ({ isActive }) =>
     `block px-3 py-2 rounded-md text-base font-medium w-full text-left transition-colors ${
       isActive ? 'text-teal-600 bg-teal-50' : 'text-gray-700 hover:text-teal-600'
     }`;
-
 
   return (
     <header className="bg-white shadow-md sticky top-0 z-50">
@@ -67,7 +68,6 @@ const Header = () => {
 
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-8">
-              {/* Use NavLink for desktop view */}
               <NavLink to="/" className={navLinkClasses}>
                 Home
               </NavLink>
