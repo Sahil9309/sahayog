@@ -2,6 +2,7 @@
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const path = require('path'); // 1. Import the 'path' module
 require('dotenv').config();
 
 const connectDB = require('./config/db');
@@ -20,6 +21,10 @@ app.use(cors({
     credentials: true,
     origin: 'http://localhost:5173',
 }));
+
+// 2. Serve static files from the 'uploads' directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 
 // Test Route
 app.get('/api/test', (req, res) => {

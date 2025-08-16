@@ -3,7 +3,7 @@ import React, { useState, useContext } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { UserContext } from './context/UserContext.js';
-import { Heart, FolderOpen, LogOut, Settings } from 'lucide-react';
+import { Heart, FolderOpen, LogOut, Settings, Plus, Calendar } from 'lucide-react';
 
 const Header = () => {
   const { user, setUser } = useContext(UserContext);
@@ -65,11 +65,14 @@ const Header = () => {
             </Link>
           </div>
 
-
+          {/* Desktop Navigation */}
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-8">
               <NavLink to="/" className={navLinkClasses}>
                 Home
+              </NavLink>
+              <NavLink to="/events" className={navLinkClasses}>
+                Events
               </NavLink>
               <NavLink to="/about" className={navLinkClasses}>
                 About Us
@@ -132,6 +135,15 @@ const Header = () => {
 
                     {/* Menu Items */}
                     <div className="py-1">
+                      <Link
+                        to="/create-event"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-teal-600 transition-colors"
+                      >
+                        <Plus className="h-4 w-4 mr-3" />
+                        Create Event
+                      </Link>
+
                       <Link
                         to="/my-campaigns"
                         onClick={() => setIsUserMenuOpen(false)}
@@ -220,6 +232,9 @@ const Header = () => {
             <NavLink to="/" onClick={() => setIsMenuOpen(false)} className={mobileNavLinkClasses}>
               Home
             </NavLink>
+            <NavLink to="/events" onClick={() => setIsMenuOpen(false)} className={mobileNavLinkClasses}>
+              Events
+            </NavLink>
             <NavLink to="/about" onClick={() => setIsMenuOpen(false)} className={mobileNavLinkClasses}>
               About Us
             </NavLink>
@@ -249,6 +264,14 @@ const Header = () => {
                     </div>
                   </div>
                   <div className="space-y-1">
+                    <Link
+                      to="/create-event"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-teal-600 hover:bg-gray-50"
+                    >
+                      <Plus className="h-5 w-5 mr-3" />
+                      Create Event
+                    </Link>
                     <Link
                       to="/my-campaigns"
                       onClick={() => setIsMenuOpen(false)}

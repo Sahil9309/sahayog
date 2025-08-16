@@ -1,4 +1,5 @@
-import React from "react"; // Removed unused useState and useEffect
+import React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ChevronRight,
   Users,
@@ -8,6 +9,8 @@ import {
 } from "lucide-react";
 
 const LandingPage = () => {
+  const navigate = useNavigate();
+
   const processSteps = [
     {
       icon: Target,
@@ -46,7 +49,10 @@ const LandingPage = () => {
                 creators and backers making dreams come true on Sahayog.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <button className="bg-white text-[#008080] px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition transform hover:scale-105 flex items-center justify-center shadow-lg">
+                <button
+                  onClick={() => navigate("/create-event")}
+                  className="bg-white text-[#008080] px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition transform hover:scale-105 flex items-center justify-center shadow-lg"
+                >
                   Start Your Campaign <ChevronRight className="ml-2 h-5 w-5" />
                 </button>
               </div>
@@ -126,7 +132,10 @@ const LandingPage = () => {
             </ul>
 
             <div>
-              <button className="bg-white text-gray-900 px-8 py-3 rounded-lg font-semibold hover:bg-gray-200 transition transform hover:scale-105 shadow-lg">
+              <button
+                onClick={() => navigate("/create-event")}
+                className="bg-white text-gray-900 px-8 py-3 rounded-lg font-semibold hover:bg-gray-200 transition transform hover:scale-105 shadow-lg"
+              >
                 <Target className="mr-2 h-5 w-5 inline-block" />
                 Start Your Campaign
               </button>

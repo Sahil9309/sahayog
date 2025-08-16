@@ -10,9 +10,15 @@ export function UserContextProvider({ children }) {
     if (!user) {
       axios.get('/api/profile').then(({ data }) => {
         setUser(data);
+      }).catch(err => {
+        // This catch block handles the 401 error gracefully
+        // when a user is not logged in.
+        console.log("Not logged in or session expired.");
       }).finally(() => {
         setReady(true);
       });
+    } else {
+        setReady(true);
     }
   }, []);
 

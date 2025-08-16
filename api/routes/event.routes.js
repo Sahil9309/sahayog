@@ -2,6 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
+const multer = require('multer'); // 1. Import multer
 const { 
     createEvent, 
     getAllEvents, 
@@ -13,13 +14,20 @@ const {
 } = require('../controllers/event.controller');
 const { authenticateToken } = require('../middlewares/auth.middleware');
 
+// 2. Configure multer to save uploaded files to an 'uploads' directory
+//    (Make sure you have a folder named 'uploads' in your project's root)
+const upload = multer({ dest: 'uploads/' });
+
 // Public routes
 router.get('/events', getAllEvents);
 router.get('/events/:id', getEventById);
 router.patch('/events/:id/contribute', contributeToEvent);
 
 // Protected routes (require authentication)
-router.post('/events', authenticateToken, createEvent);
+// 3. Add the multer middleware to the createEvent route.
+//    The order is important: first authenticate, then handle the file, then create the event.
+router.post('/events', authenticateToken, upload.single('uploadedImage'), createEvent);
+
 router.get('/my-events', authenticateToken, getMyEvents);
 router.put('/events/:id', authenticateToken, updateEvent);
 router.delete('/events/:id', authenticateToken, deleteEvent);
