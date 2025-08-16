@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import axios from "axios";
+import { Toaster } from 'react-hot-toast';
 import Layout from "./Layout.jsx";
 import { UserContextProvider } from "./context/UserContext.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
@@ -34,6 +35,33 @@ function App() {
          <Route path="/settings" element={<SettingsPage />} />
        </Route>
       </Routes>
+      
+      {/* Add Toaster component for toast notifications */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#fff',
+            color: '#333',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            borderRadius: '8px',
+            padding: '16px',
+          },
+          success: {
+            iconTheme: {
+              primary: '#008080',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
     </UserContextProvider>
   );
 }

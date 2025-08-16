@@ -1,7 +1,8 @@
 import { useState, useContext } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
-import { UserContext } from '../context/UserContext.js'; // Import the context
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { UserContext } from '../context/UserContext.js';
 import { Eye, EyeOff, Mail, Lock, LogIn } from 'lucide-react';
 
 const LoginPage = () => {
@@ -40,18 +41,32 @@ const LoginPage = () => {
     try {
       const response = await axios.post('/api/login', formData);
   
-      setUser(response.data); // 1. Set the user in the global context
-      alert(`Welcome back, ${response.data.firstName || response.data.username}!`);
+      setUser(response.data);
+      
+      // Replace alert with success toast
+      toast.success(`Welcome back, ${response.data.firstName || response.data.username}!`, {
+        icon: '👋',
+        duration: 3000,
+      });
+      
       navigate('/');
 
     } catch (error) {
       if (error.response) {
         const { status } = error.response;
-        if (status === 404) setErrors({ email: 'User not found' });
-        else if (status === 422) setErrors({ password: 'Password is incorrect' });
-        else setErrors({ submit: 'Login failed. Please try again.' });
+        if (status === 404) {
+          setErrors({ email: 'User not found' });
+          toast.error('User not found. Please check your email address.');
+        } else if (status === 422) {
+          setErrors({ password: 'Password is incorrect' });
+          toast.error('Incorrect password. Please try again.');
+        } else {
+          setErrors({ submit: 'Login failed. Please try again.' });
+          toast.error('Login failed. Please try again.');
+        }
       } else {
         setErrors({ submit: 'Network error. Please try again.' });
+        toast.error('Network error. Please check your connection.');
         console.error('Login error:', error);
       }
     } finally {

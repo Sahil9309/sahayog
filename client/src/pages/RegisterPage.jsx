@@ -1,7 +1,8 @@
 import { useState, useContext } from 'react';
-import axios from 'axios'; // Import axios
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
-import { UserContext } from '../context/UserContext.js'; // Import the context
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { UserContext } from '../context/UserContext.js';
 import { Eye, EyeOff, Mail, Lock, UserPlus, Upload } from 'lucide-react';
 
 const RegisterPage = () => {
@@ -17,7 +18,7 @@ const RegisterPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
-  const { setUser } = useContext(UserContext); // Get the setUser function from context
+  const { setUser } = useContext(UserContext);
   const navigate = useNavigate();
 
   const handleInputChange = (e) => {
@@ -70,16 +71,23 @@ const RegisterPage = () => {
       // Set the user in context (auto-login after registration)
       setUser(response.data);
       
-      
-      alert(`Welcome to Sahayog, ${response.data.firstName || response.data.name}!`);
+      // Replace alert with success toast
+      toast.success(`Welcome to Sahayog, ${response.data.firstName || response.data.name}!`, {
+        icon: '🎉',
+        duration: 4000,
+      });
       
       navigate('/');
 
     } catch (error) {
       if (error.response && error.response.data) {
-        setErrors({ submit: error.response.data.error || 'Registration failed' });
+        const errorMessage = error.response.data.error || 'Registration failed';
+        setErrors({ submit: errorMessage });
+        toast.error(errorMessage);
       } else {
-        setErrors({ submit: 'Network error. Please try again.' });
+        const errorMessage = 'Network error. Please try again.';
+        setErrors({ submit: errorMessage });
+        toast.error(errorMessage);
         console.error('Registration error:', error);
       }
     } finally {
@@ -99,7 +107,6 @@ const RegisterPage = () => {
           <p className="text-gray-600">Join us and start your journey</p>
         </div>
 
-        {/* Form and other JSX remains the same... */}
         <div className="mt-8 space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -112,9 +119,6 @@ const RegisterPage = () => {
               <input id="lastName" name="lastName" type="text" value={formData.lastName} onChange={handleInputChange} className={`relative block w-full px-3 py-3 border ${ errors.lastName ? 'border-[#ff6b6b]' : 'border-gray-300' } placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#008080] focus:border-[#008080] transition-colors`} placeholder="Last Name"/>
               {errors.lastName && (<p className="mt-1 text-sm text-[#ff6b6b]">{errors.lastName}</p>)}
             </div>
-          </div>
-          <div>
-            
           </div>
           <div>
             <label htmlFor="email" className="sr-only">Email address</label>
