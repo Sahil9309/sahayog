@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from "react-router-dom";
 import {
   Heart,
   Shield,
@@ -10,6 +11,8 @@ import {
 } from "lucide-react";
 
 const AboutUs = () => {
+  const navigate = useNavigate();
+
   // Data for our core values - clean and easy to manage.
   const values = [
     {
@@ -108,11 +111,17 @@ const AboutUs = () => {
               Whether you're a creator with the next big idea or someone who loves supporting innovation, there's a place for you here.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <button className="bg-white text-[#008080] px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-transform transform hover:scale-105 flex items-center shadow-md">
+              <button
+                onClick={() => navigate("/create-event")}
+                className="bg-white text-[#008080] px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-transform transform hover:scale-105 flex items-center shadow-md"
+              >
                 Start Creating
                 <ArrowRight className="ml-2 h-5 w-5" />
               </button>
-              <button className="border-2 border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-[#008080] transition-all flex items-center">
+              <button
+                onClick={() => navigate("/events")}
+                className="border-2 border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-[#008080] transition-all flex items-center"
+              >
                 Explore Projects
                 <Star className="ml-2 h-5 w-5" />
               </button>
