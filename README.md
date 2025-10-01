@@ -237,7 +237,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👨‍💻 Developer
 
-**Sahil Kumar**
 - GitHub: [@Sahil9309](https://github.com/Sahil9309)
 - LinkedIn: [sahil9309](https://linkedin.com/in/sahil9309)
 - Email: sahayog.platform@gmail.com
