@@ -30,7 +30,7 @@ const Footer = () => {
             <ul className="mt-4 space-y-3">
               <li>
                 <Link
-                  to="/start-campaign"
+                  to="/create-event"
                   className="hover:text-white transition-colors"
                 >
                   Start a Campaign
@@ -38,7 +38,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link
-                  to="/projects"
+                  to="/events"
                   className="hover:text-white transition-colors"
                 >
                   Explore Projects
