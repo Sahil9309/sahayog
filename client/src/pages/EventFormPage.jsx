@@ -11,6 +11,7 @@ import {
   Tag,
   Link as LinkIcon,
   Image,
+  Star,
 } from "lucide-react";
 
 const EventFormPage = () => {
@@ -23,14 +24,16 @@ const EventFormPage = () => {
     description: "",
     amountToRaise: "",
     tags: [],
-    imageFile: null,
-    imageUrl: "",
+    imageFiles: [],
+    imageUrls: [], // Changed to support multiple URLs
   });
 
   const [currentTag, setCurrentTag] = useState("");
+  const [currentImageUrl, setCurrentImageUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [imagePreview, setImagePreview] = useState("");
+  const [imagePreviews, setImagePreviews] = useState([]);
+  const [favoriteImageIndex, setFavoriteImageIndex] = useState(0);
 
   // 3. New useEffect to fetch event data when in "edit" mode
   useEffect(() => {
@@ -43,26 +46,43 @@ const EventFormPage = () => {
     axios
       .get(`/api/events/${id}`)
       .then((response) => {
-        const {
-          title,
-          description,
-          amountToRaise,
-          tags,
-          imageUrl,
-          imageFile,
-        } = response.data;
+        const { title, description, amountToRaise, tags, imageUrl } =
+          response.data;
         setFormData({
           title,
           description,
           amountToRaise,
           tags: tags || [],
-          imageUrl: imageUrl || "",
-          imageFile: null, // We don't pre-fill file inputs
+          imageUrls: [], // Reset URLs for editing
+          imageFiles: [], // We don't pre-fill file inputs
         });
 
-        // Set the image preview if an image exists
-        if (imageUrl) {
-          setImagePreview(imageUrl);
+        // Set the image previews from existing images
+        const existingImages = response.data.images || [];
+        if (existingImages.length > 0) {
+          setImagePreviews(
+            existingImages.map((img, index) => ({
+              url: img.url,
+              isExisting: true,
+              id: img._id,
+              isStarred: img.isStarred,
+              order: img.order || index,
+            })),
+          );
+          // Set favorite image index based on starred image
+          const starredIndex = existingImages.findIndex((img) => img.isStarred);
+          setFavoriteImageIndex(starredIndex >= 0 ? starredIndex : 0);
+        } else if (imageUrl) {
+          setImagePreviews([
+            {
+              url: imageUrl,
+              isExisting: true,
+              id: "legacy",
+              isStarred: true,
+              order: 0,
+            },
+          ]);
+          setFavoriteImageIndex(0);
         }
       })
       .catch((err) => {
@@ -85,27 +105,140 @@ const EventFormPage = () => {
   };
 
   const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setError("Image size should be less than 5MB");
-        return;
-      }
-      setFormData((prev) => ({ ...prev, imageFile: file, imageUrl: "" }));
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    // Validate file sizes
+    const oversizedFiles = files.filter((file) => file.size > 5 * 1024 * 1024);
+    if (oversizedFiles.length > 0) {
+      setError("Some images are larger than 5MB. Please choose smaller files.");
+      return;
+    }
+
+    // Limit total number of images
+    const totalImages = imagePreviews.length + files.length;
+    if (totalImages > 10) {
+      setError("Maximum 10 images allowed per event");
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      imageFiles: [...prev.imageFiles, ...files],
+      imageUrls: [], // Clear URLs when uploading files
+    }));
+
+    // Generate previews for new files
+    const newPreviews = [];
+    files.forEach((file, index) => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result);
+        newPreviews.push({
+          url: reader.result,
+          isExisting: false,
+          file,
+          isStarred: imagePreviews.length === 0 && index === 0, // First image is starred if no existing images
+          order: imagePreviews.length + index,
+        });
+        if (newPreviews.length === files.length) {
+          setImagePreviews((prev) => [...prev, ...newPreviews]);
+          // Set favorite to first new image if no existing images
+          if (imagePreviews.length === 0) {
+            setFavoriteImageIndex(0);
+          }
+        }
       };
       reader.readAsDataURL(file);
+    });
+  };
+
+  const addImageUrl = () => {
+    const url = currentImageUrl.trim();
+    if (!url) return;
+
+    // Basic URL validation
+    try {
+      new URL(url);
+    } catch {
+      setError("Please enter a valid URL");
+      return;
+    }
+
+    // Check if URL already exists
+    if (imagePreviews.some((preview) => preview.url === url)) {
+      setError("This image URL has already been added");
+      return;
+    }
+
+    // Limit total number of images
+    if (imagePreviews.length >= 10) {
+      setError("Maximum 10 images allowed per event");
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      imageUrls: [...prev.imageUrls, url],
+      imageFiles: [], // Clear files when adding URLs
+    }));
+
+    const newPreview = {
+      url,
+      isExisting: false,
+      isUrl: true,
+      isStarred: imagePreviews.length === 0, // First image is starred
+      order: imagePreviews.length,
+    };
+
+    setImagePreviews((prev) => [...prev, newPreview]);
+    setCurrentImageUrl("");
+
+    // Set favorite to first image if no existing images
+    if (imagePreviews.length === 0) {
+      setFavoriteImageIndex(0);
     }
   };
 
-  const handleImageUrlChange = (e) => {
-    const url = e.target.value;
-    setFormData((prev) => ({ ...prev, imageUrl: url, imageFile: null }));
-    if (url) {
-      setImagePreview(url);
+  const removeImage = (index) => {
+    const imageToRemove = imagePreviews[index];
+
+    // Remove from previews
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+
+    // Remove from form data if it's a new file
+    if (!imageToRemove.isExisting && imageToRemove.file) {
+      setFormData((prev) => ({
+        ...prev,
+        imageFiles: prev.imageFiles.filter(
+          (file) => file !== imageToRemove.file,
+        ),
+      }));
     }
+
+    // Remove from URLs if it's a URL-based image
+    if (imageToRemove.isUrl) {
+      setFormData((prev) => ({
+        ...prev,
+        imageUrls: prev.imageUrls.filter((url) => url !== imageToRemove.url),
+      }));
+    }
+
+    // Adjust favorite index if necessary
+    if (favoriteImageIndex === index) {
+      setFavoriteImageIndex(0); // Reset to first image
+    } else if (favoriteImageIndex > index) {
+      setFavoriteImageIndex(favoriteImageIndex - 1);
+    }
+  };
+
+  const markAsFavorite = (index) => {
+    setFavoriteImageIndex(index);
+    setImagePreviews((prev) =>
+      prev.map((preview, i) => ({
+        ...preview,
+        isStarred: i === index,
+      })),
+    );
   };
 
   const addTag = () => {
@@ -161,12 +294,23 @@ const EventFormPage = () => {
     submitData.append("description", formData.description);
     submitData.append("amountToRaise", formData.amountToRaise);
     submitData.append("tags", JSON.stringify(formData.tags));
-    if (formData.imageFile) {
-      submitData.append("imageFile", formData.imageFile);
+
+    // Append multiple image files
+    if (formData.imageFiles && formData.imageFiles.length > 0) {
+      formData.imageFiles.forEach((file) => {
+        submitData.append("images", file);
+      });
     }
-    if (formData.imageUrl) {
-      submitData.append("imageUrl", formData.imageUrl);
+
+    // Append multiple image URLs
+    if (formData.imageUrls && formData.imageUrls.length > 0) {
+      formData.imageUrls.forEach((url) => {
+        submitData.append("imageUrl", url);
+      });
     }
+
+    // Send favorite image index
+    submitData.append("favoriteImageIndex", favoriteImageIndex);
 
     try {
       if (id) {
@@ -331,9 +475,13 @@ const EventFormPage = () => {
                     type="file"
                     id="imageUpload"
                     accept="image/*"
+                    multiple
                     onChange={handleImageUpload}
                     className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Select multiple images (max 10, 5MB each)
+                  </p>
                 </div>
                 <div className="flex items-center">
                   <div className="flex-1 border-t border-gray-300"></div>
@@ -345,30 +493,101 @@ const EventFormPage = () => {
                     htmlFor="imageUrl"
                     className="block text-sm text-gray-600 mb-2"
                   >
-                    Image URL
+                    Add Image URL
                   </label>
-                  <div className="relative">
-                    <LinkIcon className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
-                    <input
-                      type="url"
-                      id="imageUrl"
-                      name="imageUrl"
-                      value={formData.imageUrl}
-                      onChange={handleImageUrlChange}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg"
-                      placeholder="https://example.com/image.jpg"
-                    />
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <LinkIcon className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
+                      <input
+                        type="url"
+                        id="imageUrl"
+                        value={currentImageUrl}
+                        onChange={(e) => setCurrentImageUrl(e.target.value)}
+                        onKeyPress={(e) =>
+                          e.key === "Enter" &&
+                          (e.preventDefault(), addImageUrl())
+                        }
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                        placeholder="https://example.com/image.jpg"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addImageUrl}
+                      className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
-                {imagePreview && (
+                {imagePreviews.length > 0 && (
                   <div className="mt-4">
-                    <p className="text-sm text-gray-600 mb-2">Preview:</p>
-                    <div className="relative w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                      />
+                    <p className="text-sm text-gray-600 mb-2">
+                      Preview ({imagePreviews.length} image
+                      {imagePreviews.length > 1 ? "s" : ""}):
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                      {imagePreviews.map((preview, index) => (
+                        <div key={index} className="relative group">
+                          <div
+                            className={`relative w-full h-32 bg-gray-100 rounded-lg overflow-hidden border-2 transition-colors ${
+                              favoriteImageIndex === index
+                                ? "border-yellow-400"
+                                : "border-transparent"
+                            }`}
+                          >
+                            <img
+                              src={preview.url}
+                              alt={`Preview ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+
+                            {/* Action buttons - Always visible on mobile, hover on desktop */}
+                            <div className="absolute top-2 right-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                              <button
+                                type="button"
+                                onClick={() => markAsFavorite(index)}
+                                className={`p-1 rounded-full transition-colors ${
+                                  favoriteImageIndex === index
+                                    ? "bg-yellow-500 text-white"
+                                    : "bg-white/80 text-gray-600 hover:bg-yellow-100"
+                                }`}
+                                title="Mark as favorite"
+                              >
+                                <Star className="h-3 w-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removeImage(index)}
+                                className="p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                title="Remove image"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+
+                            {/* Status badges */}
+                            <div className="absolute bottom-2 left-2 flex gap-1">
+                              {preview.isExisting && (
+                                <div className="bg-blue-500 text-white px-2 py-1 rounded text-xs">
+                                  Existing
+                                </div>
+                              )}
+                              {favoriteImageIndex === index && (
+                                <div className="bg-yellow-500 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+                                  <Star className="h-3 w-3" />
+                                  Favorite
+                                </div>
+                              )}
+                              {preview.isUrl && (
+                                <div className="bg-green-500 text-white px-2 py-1 rounded text-xs">
+                                  URL
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}

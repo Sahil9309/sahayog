@@ -16,12 +16,60 @@ const createEvent = async (req, res) => {
       amountToRaise,
       tags,
       createdBy: req.user.id,
+      images: [],
     };
 
-    // Handle image upload
-    if (req.file) {
+    // Handle multiple image uploads
+    if (req.files && req.files.length > 0) {
       try {
-        // Upload to Cloudinary
+        const uploadPromises = req.files.map(async (file, index) => {
+          const result = await cloudinary.uploader.upload(file.path, {
+            folder: "sahayog-events",
+            resource_type: "image",
+            transformation: [
+              { width: 800, height: 600, crop: "limit" },
+              { quality: "auto", fetch_format: "auto" },
+            ],
+          });
+
+          // Clean up temporary file
+          fs.unlinkSync(file.path);
+
+          return {
+            url: result.secure_url,
+            publicId: result.public_id,
+            isStarred: index === 0, // First image is starred by default
+            order: index,
+            uploadedAt: new Date(),
+          };
+        });
+
+        eventData.images = await Promise.all(uploadPromises);
+
+        // Set legacy fields for backward compatibility (first image)
+        if (eventData.images.length > 0) {
+          eventData.imageUrl = eventData.images[0].url;
+          eventData.imagePublicId = eventData.images[0].publicId;
+        }
+      } catch (uploadError) {
+        console.error("Cloudinary upload failed:", uploadError);
+        // Clean up temporary files even if upload fails
+        if (req.files) {
+          req.files.forEach((file) => {
+            try {
+              fs.unlinkSync(file.path);
+            } catch (cleanupError) {
+              console.error("Failed to clean up temp file:", cleanupError);
+            }
+          });
+        }
+        return res
+          .status(422)
+          .json({ error: "Image upload failed. Please try again." });
+      }
+    } else if (req.file) {
+      // Handle single file upload (backward compatibility)
+      try {
         const result = await cloudinary.uploader.upload(req.file.path, {
           folder: "sahayog-events",
           resource_type: "image",
@@ -31,14 +79,23 @@ const createEvent = async (req, res) => {
           ],
         });
 
+        eventData.images = [
+          {
+            url: result.secure_url,
+            publicId: result.public_id,
+            isStarred: true,
+            order: 0,
+            uploadedAt: new Date(),
+          },
+        ];
+
+        // Set legacy fields
         eventData.imageUrl = result.secure_url;
         eventData.imagePublicId = result.public_id;
 
-        // Clean up temporary file
         fs.unlinkSync(req.file.path);
       } catch (uploadError) {
         console.error("Cloudinary upload failed:", uploadError);
-        // Clean up temporary file even if upload fails
         if (req.file && req.file.path) {
           try {
             fs.unlinkSync(req.file.path);
@@ -51,18 +108,38 @@ const createEvent = async (req, res) => {
           .json({ error: "Image upload failed. Please try again." });
       }
     } else if (imageUrl) {
-      // Use provided image URL
+      // Use provided image URL (backward compatibility)
       eventData.imageUrl = imageUrl;
+      eventData.images = [
+        {
+          url: imageUrl,
+          publicId: "", // No public ID for external URLs
+          isStarred: true,
+          order: 0,
+          uploadedAt: new Date(),
+        },
+      ];
     }
 
     const eventDoc = await Event.create(eventData);
-    await eventDoc.populate("createdBy", "firstName lastName email avatar");
+    await eventDoc.populate(
+      "createdBy",
+      "firstName lastName email avatar username",
+    );
     res.status(201).json(eventDoc);
   } catch (e) {
     console.error("EVENT CREATION FAILED:", e);
 
-    // Clean up temporary file if it exists
-    if (req.file && req.file.path) {
+    // Clean up temporary files if they exist
+    if (req.files) {
+      req.files.forEach((file) => {
+        try {
+          fs.unlinkSync(file.path);
+        } catch (cleanupError) {
+          console.error("Failed to clean up temp file:", cleanupError);
+        }
+      });
+    } else if (req.file && req.file.path) {
       try {
         fs.unlinkSync(req.file.path);
       } catch (cleanupError) {
@@ -277,6 +354,119 @@ const contributeToEvent = async (req, res) => {
   }
 };
 
+// PATCH /events/:id/images/:imageId/star
+const toggleImageStar = async (req, res) => {
+  try {
+    const { id, imageId } = req.params;
+    const event = await Event.findById(id);
+
+    if (!event) return res.status(404).json({ error: "Event not found" });
+    if (event.createdBy.toString() !== req.user.id) {
+      return res
+        .status(403)
+        .json({ error: "Not authorized to modify this event" });
+    }
+
+    const image = event.images.id(imageId);
+    if (!image) return res.status(404).json({ error: "Image not found" });
+
+    image.isStarred = !image.isStarred;
+    await event.save();
+
+    res.json({ message: "Image star status updated", image });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
+// DELETE /events/:id/images/:imageId
+const deleteEventImage = async (req, res) => {
+  try {
+    const { id, imageId } = req.params;
+    const event = await Event.findById(id);
+
+    if (!event) return res.status(404).json({ error: "Event not found" });
+    if (event.createdBy.toString() !== req.user.id) {
+      return res
+        .status(403)
+        .json({ error: "Not authorized to modify this event" });
+    }
+
+    const image = event.images.id(imageId);
+    if (!image) return res.status(404).json({ error: "Image not found" });
+
+    // Delete from Cloudinary if it has a public ID
+    if (image.publicId) {
+      try {
+        await cloudinary.uploader.destroy(image.publicId);
+      } catch (deleteError) {
+        console.error("Failed to delete image from Cloudinary:", deleteError);
+      }
+    }
+
+    // Remove image from array
+    event.images.pull(imageId);
+
+    // Update legacy fields if this was the primary image
+    if (event.imagePublicId === image.publicId) {
+      const remainingImages = event.images;
+      if (remainingImages.length > 0) {
+        event.imageUrl = remainingImages[0].url;
+        event.imagePublicId = remainingImages[0].publicId;
+      } else {
+        event.imageUrl = null;
+        event.imagePublicId = null;
+      }
+    }
+
+    await event.save();
+    res.json({ message: "Image deleted successfully" });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
+// PUT /events/:id/images/reorder
+const reorderEventImages = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { imageOrder } = req.body; // Array of image IDs in new order
+
+    const event = await Event.findById(id);
+    if (!event) return res.status(404).json({ error: "Event not found" });
+    if (event.createdBy.toString() !== req.user.id) {
+      return res
+        .status(403)
+        .json({ error: "Not authorized to modify this event" });
+    }
+
+    // Update order for each image
+    imageOrder.forEach((imageId, index) => {
+      const image = event.images.id(imageId);
+      if (image) {
+        image.order = index;
+      }
+    });
+
+    // Sort images by order
+    event.images.sort((a, b) => a.order - b.order);
+
+    // Update legacy fields to use first image
+    if (event.images.length > 0) {
+      event.imageUrl = event.images[0].url;
+      event.imagePublicId = event.images[0].publicId;
+    }
+
+    await event.save();
+    res.json({
+      message: "Images reordered successfully",
+      images: event.images,
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+};
+
 module.exports = {
   createEvent,
   getAllEvents,
@@ -285,4 +475,7 @@ module.exports = {
   updateEvent,
   deleteEvent,
   contributeToEvent,
+  toggleImageStar,
+  deleteEventImage,
+  reorderEventImages,
 };

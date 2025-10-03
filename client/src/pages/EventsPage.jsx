@@ -1,8 +1,15 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, {
+  useState,
+  useEffect,
+  useContext,
+  useMemo,
+  useCallback,
+} from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { UserContext } from "../context/UserContext";
+import LazyImage from "../components/LazyImage";
 import {
   Calendar,
   MapPin,
@@ -33,9 +40,9 @@ const EventsPage = () => {
 
   useEffect(() => {
     fetchEvents();
-  }, [pagination.currentPage, filters]);
+  }, [fetchEvents]);
 
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     try {
       setLoading(true);
       const params = {
@@ -61,7 +68,7 @@ const EventsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.currentPage, filters]);
 
   const handleContribute = async (eventId, amount) => {
     if (!user) {
@@ -112,9 +119,6 @@ const EventsPage = () => {
   };
 
   const EventCard = ({ event }) => {
-    const [contributionAmount, setContributionAmount] = useState("");
-    const [showContribute, setShowContribute] = useState(false);
-
     const progress = getProgressPercentage(
       event.currentAmount,
       event.amountToRaise,
@@ -124,11 +128,16 @@ const EventsPage = () => {
       <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
         {/* Event Image */}
         <div className="h-48 bg-gray-200 relative">
-          {event.imageUrl ? (
-            <img
-              src={event.imageUrl}
+          {event.imageUrl || (event.images && event.images.length > 0) ? (
+            <LazyImage
+              src={event.images?.[0]?.url || event.imageUrl}
               alt={event.title}
               className="w-full h-full object-cover"
+              placeholder={
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-teal-100 to-teal-200">
+                  <Heart className="h-16 w-16 text-teal-600" />
+                </div>
+              }
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-teal-100 to-teal-200">
@@ -210,54 +219,15 @@ const EventsPage = () => {
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2">
+          {/* Action Button */}
+          <div className="flex">
             <Link
               to={`/events/${event._id}`}
-              className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors text-center"
+              className="w-full bg-teal-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-teal-700 transition-colors text-center"
             >
               View Details
             </Link>
-            {user && (
-              <button
-                onClick={() => setShowContribute(!showContribute)}
-                className="flex-1 bg-teal-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-teal-700 transition-colors"
-              >
-                Contribute
-              </button>
-            )}
           </div>
-
-          {/* Contribution Form */}
-          {showContribute && user && (
-            <div className="mt-4 p-4 bg-gray-50 rounded-md">
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  placeholder="Amount (₹)"
-                  value={contributionAmount}
-                  onChange={(e) => setContributionAmount(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                  min="1"
-                />
-                <button
-                  onClick={() => {
-                    if (
-                      contributionAmount &&
-                      parseFloat(contributionAmount) > 0
-                    ) {
-                      handleContribute(event._id, contributionAmount);
-                      setContributionAmount("");
-                      setShowContribute(false);
-                    }
-                  }}
-                  className="bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700 transition-colors"
-                >
-                  Donate
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     );
