@@ -8,6 +8,7 @@ import RegisterPage from "./pages/RegisterPage.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
 import AboutUs from "./pages/AboutUs.jsx";
 import EventsPage from "./pages/EventsPage.jsx";
+import EventDetailsPage from "./pages/EventDetailsPage.jsx";
 import EventFormPage from "./pages/EventFormPage.jsx";
 import MyCampaignsPage from "./pages/MyCampaignsPage.jsx";
 import MyContributionsPage from "./pages/MyContributionsPage.jsx";
@@ -28,6 +29,7 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/about" element={<AboutUs />} />
           <Route path="/events" element={<EventsPage />} />
+          <Route path="/events/:id" element={<EventDetailsPage />} />
           <Route path="/create-event" element={<EventFormPage />} />
           {/* --- THIS IS THE NEW ROUTE FOR EDITING --- */}
           <Route path="/edit-event/:id" element={<EventFormPage />} />

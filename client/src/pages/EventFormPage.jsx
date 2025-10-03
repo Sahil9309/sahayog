@@ -23,14 +23,14 @@ const EventFormPage = () => {
     description: "",
     amountToRaise: "",
     tags: [],
-    imageFile: null,
+    imageFiles: [],
     imageUrl: "",
   });
 
   const [currentTag, setCurrentTag] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [imagePreview, setImagePreview] = useState("");
+  const [imagePreviews, setImagePreviews] = useState([]);
 
   // 3. New useEffect to fetch event data when in "edit" mode
   useEffect(() => {
@@ -43,26 +43,29 @@ const EventFormPage = () => {
     axios
       .get(`/api/events/${id}`)
       .then((response) => {
-        const {
-          title,
-          description,
-          amountToRaise,
-          tags,
-          imageUrl,
-          imageFile,
-        } = response.data;
+        const { title, description, amountToRaise, tags, imageUrl, imageFile } =
+          response.data;
         setFormData({
           title,
           description,
           amountToRaise,
           tags: tags || [],
           imageUrl: imageUrl || "",
-          imageFile: null, // We don't pre-fill file inputs
+          imageFiles: [], // We don't pre-fill file inputs
         });
 
-        // Set the image preview if an image exists
-        if (imageUrl) {
-          setImagePreview(imageUrl);
+        // Set the image previews from existing images
+        const existingImages = response.data.images || [];
+        if (existingImages.length > 0) {
+          setImagePreviews(
+            existingImages.map((img) => ({
+              url: img.url,
+              isExisting: true,
+              id: img._id,
+            })),
+          );
+        } else if (imageUrl) {
+          setImagePreviews([{ url: imageUrl, isExisting: true, id: "legacy" }]);
         }
       })
       .catch((err) => {
@@ -85,26 +88,70 @@ const EventFormPage = () => {
   };
 
   const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setError("Image size should be less than 5MB");
-        return;
-      }
-      setFormData((prev) => ({ ...prev, imageFile: file, imageUrl: "" }));
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    // Validate file sizes
+    const oversizedFiles = files.filter((file) => file.size > 5 * 1024 * 1024);
+    if (oversizedFiles.length > 0) {
+      setError("Some images are larger than 5MB. Please choose smaller files.");
+      return;
+    }
+
+    // Limit total number of images
+    const totalImages = imagePreviews.length + files.length;
+    if (totalImages > 10) {
+      setError("Maximum 10 images allowed per event");
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      imageFiles: [...prev.imageFiles, ...files],
+      imageUrl: "",
+    }));
+
+    // Generate previews for new files
+    const newPreviews = [];
+    files.forEach((file) => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result);
+        newPreviews.push({ url: reader.result, isExisting: false, file });
+        if (newPreviews.length === files.length) {
+          setImagePreviews((prev) => [...prev, ...newPreviews]);
+        }
       };
       reader.readAsDataURL(file);
-    }
+    });
   };
 
   const handleImageUrlChange = (e) => {
     const url = e.target.value;
-    setFormData((prev) => ({ ...prev, imageUrl: url, imageFile: null }));
+    setFormData((prev) => ({ ...prev, imageUrl: url, imageFiles: [] }));
     if (url) {
-      setImagePreview(url);
+      setImagePreviews([{ url, isExisting: false, isUrl: true }]);
+    }
+  };
+
+  const removeImage = (index) => {
+    const imageToRemove = imagePreviews[index];
+
+    // Remove from previews
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+
+    // Remove from form data if it's a new file
+    if (!imageToRemove.isExisting && imageToRemove.file) {
+      setFormData((prev) => ({
+        ...prev,
+        imageFiles: prev.imageFiles.filter(
+          (file) => file !== imageToRemove.file,
+        ),
+      }));
+    }
+
+    // Clear URL if it's a URL-based image
+    if (imageToRemove.isUrl) {
+      setFormData((prev) => ({ ...prev, imageUrl: "" }));
     }
   };
 
@@ -161,9 +208,14 @@ const EventFormPage = () => {
     submitData.append("description", formData.description);
     submitData.append("amountToRaise", formData.amountToRaise);
     submitData.append("tags", JSON.stringify(formData.tags));
-    if (formData.imageFile) {
-      submitData.append("imageFile", formData.imageFile);
+
+    // Append multiple image files
+    if (formData.imageFiles && formData.imageFiles.length > 0) {
+      formData.imageFiles.forEach((file) => {
+        submitData.append("images", file);
+      });
     }
+
     if (formData.imageUrl) {
       submitData.append("imageUrl", formData.imageUrl);
     }
@@ -331,9 +383,13 @@ const EventFormPage = () => {
                     type="file"
                     id="imageUpload"
                     accept="image/*"
+                    multiple
                     onChange={handleImageUpload}
                     className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Select multiple images (max 10, 5MB each)
+                  </p>
                 </div>
                 <div className="flex items-center">
                   <div className="flex-1 border-t border-gray-300"></div>
@@ -360,15 +416,36 @@ const EventFormPage = () => {
                     />
                   </div>
                 </div>
-                {imagePreview && (
+                {imagePreviews.length > 0 && (
                   <div className="mt-4">
-                    <p className="text-sm text-gray-600 mb-2">Preview:</p>
-                    <div className="relative w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                      />
+                    <p className="text-sm text-gray-600 mb-2">
+                      Preview ({imagePreviews.length} image
+                      {imagePreviews.length > 1 ? "s" : ""}):
+                    </p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {imagePreviews.map((preview, index) => (
+                        <div key={index} className="relative group">
+                          <div className="relative w-full h-32 bg-gray-100 rounded-lg overflow-hidden">
+                            <img
+                              src={preview.url}
+                              alt={`Preview ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeImage(index)}
+                              className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                            {preview.isExisting && (
+                              <div className="absolute bottom-2 left-2 bg-blue-500 text-white px-2 py-1 rounded text-xs">
+                                Existing
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}

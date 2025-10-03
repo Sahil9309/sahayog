@@ -9,6 +9,7 @@ const connectDB = require("./config/db");
 const authRoutes = require("./routes/auth.routes");
 const eventRoutes = require("./routes/event.routes");
 const contributionRoutes = require("./routes/contribution");
+const contributionApiRoutes = require("./routes/contribution.routes");
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.get("/api/test", (req, res) => {
 app.use("/api", authRoutes);
 app.use("/api", eventRoutes);
 app.use("/api", contributionRoutes);
+app.use("/api", contributionApiRoutes);
 
 const port = process.env.PORT || 5000;
 app.listen(port, () => {

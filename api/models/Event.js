@@ -23,12 +23,38 @@ const EventSchema = new Schema(
         trim: true,
       },
     ],
+    // Legacy fields for backward compatibility
     imageUrl: {
       type: String, // Cloudinary URL or external image URL
     },
     imagePublicId: {
       type: String, // Cloudinary public ID for deletion
     },
+    // New multiple images support
+    images: [
+      {
+        url: {
+          type: String,
+          required: true,
+        },
+        publicId: {
+          type: String,
+          required: true,
+        },
+        isStarred: {
+          type: Boolean,
+          default: false,
+        },
+        order: {
+          type: Number,
+          default: 0,
+        },
+        uploadedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: "User",

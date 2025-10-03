@@ -1,40 +1,44 @@
-import React, { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { 
-  CreditCard, 
-  Mail, 
-  CheckCircle, 
-  Download, 
+import React, { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import axios from "axios";
+import {
+  CreditCard,
+  Mail,
+  CheckCircle,
+  Download,
   ArrowLeft,
   Receipt,
   Calendar,
   User,
-  DollarSign
-} from 'lucide-react';
-import toast from 'react-hot-toast';
+  DollarSign,
+} from "lucide-react";
+import toast from "react-hot-toast";
 
 const CheckoutPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { amount } = location.state || { amount: 0 };
-  
-  const [email, setEmail] = useState('');
+  const { amount, eventId, eventTitle } = location.state || { amount: 0 };
+
+  const [email, setEmail] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [invoiceData, setInvoiceData] = useState(null);
 
   const generateInvoiceNumber = () => {
-    return `INV-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    return `INV-${Date.now()}-${Math.random()
+      .toString(36)
+      .substr(2, 9)
+      .toUpperCase()}`;
   };
 
   const handlePayment = async () => {
     if (!email) {
-      toast.error('Please enter your email address');
+      toast.error("Please enter your email address");
       return;
     }
 
     setIsProcessing(true);
-    
+
     // Simulate payment processing
     setTimeout(async () => {
       const invoice = {
@@ -43,35 +47,50 @@ const CheckoutPage = () => {
         date: new Date().toLocaleDateString(),
         time: new Date().toLocaleTimeString(),
         email: email,
-        status: 'Paid',
+        status: "Paid",
         transactionId: `TXN-${Date.now()}`,
-        paymentMethod: 'Credit Card',
-        description: 'Contribution to Sahayog Platform'
+        paymentMethod: "Credit Card",
+        description: `Contribution to ${eventTitle || "Sahayog Platform"}`,
       };
 
-      setInvoiceData(invoice);
-      setIsSuccess(true);
-      setIsProcessing(false);
-      
-      // Send email invoice
       try {
-        await fetch('http://localhost:5000/api/send-invoice', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(invoice),
-        });
-        toast.success('Invoice sent to your email!');
+        // Record contribution in database
+        if (eventId) {
+          await axios.post("/api/contributions", {
+            eventId,
+            amount,
+            email,
+            transactionId: invoice.transactionId,
+            invoiceNumber: invoice.invoiceNumber,
+            paymentMethod: "Credit Card",
+          });
+        }
+
+        setInvoiceData(invoice);
+        setIsSuccess(true);
+
+        // Send email invoice
+        try {
+          await axios.post("/api/send-invoice", invoice);
+          toast.success(
+            "Contribution recorded and invoice sent to your email!",
+          );
+        } catch (emailError) {
+          console.error("Email sending failed:", emailError);
+          toast.success("Contribution recorded successfully!");
+        }
       } catch (error) {
-        toast.error('Payment successful, but failed to send email');
+        console.error("Contribution recording failed:", error);
+        toast.error("Payment processing failed. Please try again.");
+      } finally {
+        setIsProcessing(false);
       }
     }, 3000);
   };
 
   const downloadInvoice = () => {
     if (!invoiceData) return;
-    
+
     const invoiceContent = `
 SAHAYOG PLATFORM - INVOICE
 
@@ -91,9 +110,9 @@ Status: ${invoiceData.status}
 Thank you for your contribution to Sahayog Platform!
     `;
 
-    const blob = new Blob([invoiceContent], { type: 'text/plain' });
+    const blob = new Blob([invoiceContent], { type: "text/plain" });
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `${invoiceData.invoiceNumber}.txt`;
     document.body.appendChild(a);
@@ -110,10 +129,13 @@ Thank you for your contribution to Sahayog Platform!
             <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-6">
               <CheckCircle className="h-12 w-12 text-green-500" />
             </div>
-            
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">Payment Successful!</h1>
+
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">
+              Payment Successful!
+            </h1>
             <p className="text-lg text-gray-600 mb-8">
-              Thank you for your contribution of ₹{amount}. Your support means a lot!
+              Thank you for your contribution of ₹{amount}. Your support means a
+              lot!
             </p>
 
             {/* Invoice Details */}
@@ -122,30 +144,36 @@ Thank you for your contribution to Sahayog Platform!
                 <Receipt className="h-5 w-5 mr-2" />
                 Invoice Details
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div className="flex items-center">
                   <Receipt className="h-4 w-4 text-gray-400 mr-2" />
                   <span className="text-gray-600">Invoice:</span>
-                  <span className="ml-2 font-medium">{invoiceData?.invoiceNumber}</span>
+                  <span className="ml-2 font-medium">
+                    {invoiceData?.invoiceNumber}
+                  </span>
                 </div>
-                
+
                 <div className="flex items-center">
                   <Calendar className="h-4 w-4 text-gray-400 mr-2" />
                   <span className="text-gray-600">Date:</span>
                   <span className="ml-2 font-medium">{invoiceData?.date}</span>
                 </div>
-                
+
                 <div className="flex items-center">
                   <DollarSign className="h-4 w-4 text-gray-400 mr-2" />
                   <span className="text-gray-600">Amount:</span>
-                  <span className="ml-2 font-medium">₹{invoiceData?.amount}</span>
+                  <span className="ml-2 font-medium">
+                    ₹{invoiceData?.amount}
+                  </span>
                 </div>
-                
+
                 <div className="flex items-center">
                   <User className="h-4 w-4 text-gray-400 mr-2" />
                   <span className="text-gray-600">Transaction:</span>
-                  <span className="ml-2 font-medium">{invoiceData?.transactionId}</span>
+                  <span className="ml-2 font-medium">
+                    {invoiceData?.transactionId}
+                  </span>
                 </div>
               </div>
             </div>
@@ -159,9 +187,9 @@ Thank you for your contribution to Sahayog Platform!
                 <Download className="h-4 w-4 mr-2" />
                 Download Invoice
               </button>
-              
+
               <button
-                onClick={() => navigate('/')}
+                onClick={() => navigate("/")}
                 className="inline-flex items-center px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
@@ -190,9 +218,11 @@ Thank you for your contribution to Sahayog Platform!
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Contribution
           </button>
-          
+
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Checkout</h1>
-          <p className="text-gray-600">Complete your contribution of ₹{amount}</p>
+          <p className="text-gray-600">
+            Complete your contribution of ₹{amount}
+          </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -203,7 +233,12 @@ Thank you for your contribution to Sahayog Platform!
               Payment Details
             </h2>
 
-            <form onSubmit={(e) => { e.preventDefault(); handlePayment(); }}>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handlePayment();
+              }}
+            >
               {/* Email */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -220,7 +255,9 @@ Thank you for your contribution to Sahayog Platform!
                     required
                   />
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Invoice will be sent to this email</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Invoice will be sent to this email
+                </p>
               </div>
 
               {/* Mock Payment Fields */}
@@ -269,8 +306,8 @@ Thank you for your contribution to Sahayog Platform!
                 disabled={isProcessing || !email}
                 className={`w-full py-4 rounded-xl text-lg font-semibold transition-all duration-300 ${
                   isProcessing
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 hover:scale-105 shadow-lg hover:shadow-xl'
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 hover:scale-105 shadow-lg hover:shadow-xl"
                 } text-white`}
               >
                 {isProcessing ? (
@@ -291,19 +328,21 @@ Thank you for your contribution to Sahayog Platform!
 
           {/* Order Summary */}
           <div className="bg-white rounded-2xl shadow-xl p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Order Summary</h2>
-            
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              Order Summary
+            </h2>
+
             <div className="space-y-4 mb-6">
               <div className="flex justify-between items-center py-3 border-b border-gray-200">
                 <span className="text-gray-600">Contribution Amount</span>
                 <span className="font-semibold">₹{amount}</span>
               </div>
-              
+
               <div className="flex justify-between items-center py-3 border-b border-gray-200">
                 <span className="text-gray-600">Platform Fee</span>
                 <span className="font-semibold text-green-600">₹0</span>
               </div>
-              
+
               <div className="flex justify-between items-center py-3 text-lg font-bold">
                 <span>Total</span>
                 <span>₹{amount}</span>
@@ -312,7 +351,9 @@ Thank you for your contribution to Sahayog Platform!
 
             {/* Benefits */}
             <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6">
-              <h3 className="font-semibold text-gray-900 mb-3">Your Contribution Includes:</h3>
+              <h3 className="font-semibold text-gray-900 mb-3">
+                Your Contribution Includes:
+              </h3>
               <ul className="space-y-2 text-sm text-gray-600">
                 <li className="flex items-center">
                   <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
