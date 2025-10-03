@@ -11,6 +11,9 @@ const {
   updateEvent,
   deleteEvent,
   contributeToEvent,
+  toggleImageStar,
+  deleteEventImage,
+  reorderEventImages,
 } = require("../controllers/event.controller");
 const { authenticateToken } = require("../middlewares/auth.middleware");
 
@@ -24,12 +27,11 @@ router.get("/events/:id", getEventById);
 router.patch("/events/:id/contribute", contributeToEvent);
 
 // Protected routes (require authentication)
-// 3. Add the multer middleware to the createEvent route.
-//    The order is important: first authenticate, then handle the file, then create the event.
+// Support both single and multiple file uploads
 router.post(
   "/events",
   authenticateToken,
-  upload.single("imageFile"),
+  upload.array("images", 10), // Allow up to 10 images
   createEvent,
 );
 
@@ -37,9 +39,22 @@ router.get("/my-events", authenticateToken, getMyEvents);
 router.put(
   "/events/:id",
   authenticateToken,
-  upload.single("imageFile"),
+  upload.array("images", 10), // Allow up to 10 images for updates
   updateEvent,
 );
 router.delete("/events/:id", authenticateToken, deleteEvent);
+
+// Image management routes
+router.patch(
+  "/events/:id/images/:imageId/star",
+  authenticateToken,
+  toggleImageStar,
+);
+router.delete(
+  "/events/:id/images/:imageId",
+  authenticateToken,
+  deleteEventImage,
+);
+router.put("/events/:id/images/reorder", authenticateToken, reorderEventImages);
 
 module.exports = router;

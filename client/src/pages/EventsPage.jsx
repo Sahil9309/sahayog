@@ -1,8 +1,15 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, {
+  useState,
+  useEffect,
+  useContext,
+  useMemo,
+  useCallback,
+} from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { UserContext } from "../context/UserContext";
+import LazyImage from "../components/LazyImage";
 import {
   Calendar,
   MapPin,
@@ -31,11 +38,7 @@ const EventsPage = () => {
     search: "",
   });
 
-  useEffect(() => {
-    fetchEvents();
-  }, [pagination.currentPage, filters]);
-
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     try {
       setLoading(true);
       const params = {
@@ -61,7 +64,11 @@ const EventsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.currentPage, filters]);
+
+  useEffect(() => {
+    fetchEvents();
+  }, []);
 
   const handleContribute = async (eventId, amount) => {
     if (!user) {
@@ -124,11 +131,16 @@ const EventsPage = () => {
       <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
         {/* Event Image */}
         <div className="h-48 bg-gray-200 relative">
-          {event.imageUrl ? (
-            <img
-              src={event.imageUrl}
+          {event.imageUrl || (event.images && event.images.length > 0) ? (
+            <LazyImage
+              src={event.images?.[0]?.url || event.imageUrl}
               alt={event.title}
               className="w-full h-full object-cover"
+              placeholder={
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-teal-100 to-teal-200">
+                  <Heart className="h-16 w-16 text-teal-600" />
+                </div>
+              }
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-teal-100 to-teal-200">
