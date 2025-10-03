@@ -38,10 +38,6 @@ const EventsPage = () => {
     search: "",
   });
 
-  useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
-
   const fetchEvents = useCallback(async () => {
     try {
       setLoading(true);
@@ -69,6 +65,10 @@ const EventsPage = () => {
       setLoading(false);
     }
   }, [pagination.currentPage, filters]);
+
+  useEffect(() => {
+    fetchEvents();
+  }, []);
 
   const handleContribute = async (eventId, amount) => {
     if (!user) {
