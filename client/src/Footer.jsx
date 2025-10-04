@@ -68,7 +68,7 @@ const Footer = () => {
               </li>
               <li>
                 <a
-                  href="mailto:sahayog.platform@gmail.com"
+                  href="mailto:mirutujdhawale@gmail.com"
                   className="hover:text-white transition-colors flex items-center"
                 >
                   <Mail className="h-4 w-4 mr-2" />
@@ -87,7 +87,7 @@ const Footer = () => {
           <div className="flex space-x-5 mt-4 sm:mt-0">
             {/* Replace with actual social links and icons */}
             <a
-              href="https://github.com/Sahil9309"
+              href="https://github.com/killjoycircuit"
               target="_blank"
               rel="noopener noreferrer"
               className="text-gray-400 hover:text-white transition-colors"
@@ -96,7 +96,7 @@ const Footer = () => {
               <Github className="h-5 w-5" />
             </a>
             <a
-              href="https://linkedin.com/in/sahil9309"
+              href="https://www.linkedin.com/in/rutuj-dhawale-6a471931b/"
               target="_blank"
               rel="noopener noreferrer"
               className="text-gray-400 hover:text-white transition-colors"
